@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard Matrículas — UGEL Espinar 2026</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  /* Paleta Institucional Educativa */
+  --bg:        #F0F4F8;
+  --surface:   #FFFFFF;
+  --surface2:  #F7FAFC;
+  --navy:      #1A3A5C;   /* azul gobierno profundo */
+  --navy2:     #234E78;
+  --teal:      #0D7C66;   /* verde educación */
+  --teal2:     #138F75;
+  --gold:      #C8860A;   /* dorado institucional */
+  --gold2:     #E09B12;
+  --red:       #C0392B;   /* rojo alerta */
+  --slate:     #4A6078;
+  --muted:     #8FA3B8;
+  --border:    #D1DDE9;
+  --border2:   #E8EFF5;
+  --text:      #1E2D3D;
+  --text2:     #3D5166;
+  --text3:     #6B85A0;
+  /* Colores grado */
+  --g1:#1565C0; --g2:#0277BD; --g3:#00695C; --g4:#558B2F; --g5:#E65100;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+h1,h2,h3,.display{font-family:'Playfair Display',serif}
+
+/* ── HEADER ── */
+.site-header{background:var(--navy);color:#fff;border-bottom:4px solid var(--gold)}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 1px 4px rgba(26,58,92,.07)}
+.card-accent{border-left:4px solid}
+
+/* ── KPI ── */
+.kpi-big{font-family:'Playfair Display',serif;font-weight:700;line-height:1}
+
+/* ── BADGE ── */
+.badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+
+/* ── TABS ── */
+.tab-btn{padding:8px 18px;border-radius:6px 6px 0 0;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;border-bottom:none;transition:all .18s;color:var(--text3)}
+.tab-btn.active{background:var(--surface);border-color:var(--border);color:var(--navy);border-bottom-color:var(--surface)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── INPUTS ── */
+input[type=text],select{
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);padding:7px 12px;font-size:13px;outline:none;
+  font-family:'Source Sans 3',sans-serif;transition:border-color .15s}
+input[type=text]:focus,select:focus{border-color:var(--navy2)}
+input[type=checkbox]{accent-color:var(--navy);width:14px;height:14px}
+
+/* ── BOTONES ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Source Sans 3',sans-serif;transition:all .15s}
+.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:var(--navy2)}
+.btn-teal{background:var(--teal);color:#fff}.btn-teal:hover{background:var(--teal2)}
+.btn-gold{background:var(--gold);color:#fff}.btn-gold:hover{background:var(--gold2)}
+.btn-outline{background:transparent;color:var(--navy);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--navy);background:var(--surface2)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{background:var(--navy);color:#fff;padding:10px 12px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.tbl tr:nth-child(even) td{background:var(--surface2)}
+.tbl tr:hover td{background:#EBF4F0}
+.tbl tfoot td{background:var(--navy);color:#fff;font-weight:700;padding:9px 12px}
+
+/* ── PROGRESS ── */
+.pb{height:5px;border-radius:3px;background:var(--border);overflow:hidden}
+.pf{height:100%;border-radius:3px;transition:width 1s}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--navy);border-bottom:2px solid var(--gold);padding-bottom:6px;margin-bottom:14px}
+
+/* ── GRADE CARD ── */
+.grade-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden}
+.grade-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+
+/* ── COMPARE ── */
+.ie-checkbox-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background .15s}
+.ie-checkbox-item:hover{background:var(--surface2)}
+.compare-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600;background:var(--navy);color:#fff}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);width:90%;max-width:920px;max-height:90vh;overflow-y:auto}
+
+/* ── UPLOAD ── */
+#dropzone{border:2px dashed var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
+#dropzone:hover,#dropzone.drag-over{border-color:var(--teal);background:#F0FAF7}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:11px 20px;border-radius:8px;font-weight:600;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.2);transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ── PRINT / PDF ── */
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff}
+  .card{box-shadow:none;border:1px solid #ccc}
+}
+
+/* ── STAT ROW ── */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border2)}
+.stat-row:last-child{border-bottom:none}
+
+/* ── dot live ── */
+.dot-live{width:8px;height:8px;border-radius:50%;background:var(--teal);display:inline-block;animation:pl 2s infinite}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* scroll thin */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:3px}
+
+/* IE search highlight */
+.hl{background:#FFF3CD;border-radius:2px}
+
+/* Escudo decorativo fondo */
+.header-deco{opacity:.06;position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:80px;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER INSTITUCIONAL
+══════════════════════════════════════════ -->
+<header class="site-header relative">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+    <!-- Escudo / logo -->
+    <div style="width:56px;height:56px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid rgba(200,134,10,.5)">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C8860A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="13" y2="11"/></svg>
+    </div>
+    <div>
+      <p style="color:var(--gold2);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase">Ministerio de Educación · DRE Cusco</p>
+      <h1 class="display text-xl font-bold text-white leading-tight">UGEL Espinar — Dashboard de Matrículas</h1>
+      <p style="color:rgba(255,255,255,.6);font-size:12px">Nivel Secundaria · Educación Básica Regular · Reporte SIAGIE 2026</p>
+    </div>
+    <div class="ml-auto flex items-center gap-3 no-print">
+      <span class="dot-live"></span>
+      <span style="color:rgba(255,255,255,.6);font-size:12px" id="last-updated">01/06/2026</span>
+      <span class="badge" style="background:rgba(200,134,10,.25);color:var(--gold2)">2026</span>
+    </div>
+  </div>
+  <div class="header-deco">🎓</div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     TOOLBAR (Upload + Acciones)
+══════════════════════════════════════════ -->
+<div class="bg-white border-b border-gray-200 no-print">
+  <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center gap-2">
+    <!-- Upload -->
+    <div id="dropzone" class="flex items-center gap-2 px-3 py-2 rounded-lg" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="hidden"/>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      <span style="font-size:12.5px;font-weight:600;color:var(--teal)" id="upload-label">Cargar / Recargar Excel</span>
+    </div>
+    <div style="width:1px;height:24px;background:var(--border)" class="mx-1"></div>
+    <!-- Filtros rápidos -->
+    <select id="fDistrito" onchange="applyFilters()" style="font-size:12px;padding:5px 10px"><option value="">Todos los Distritos</option></select>
+    <select id="fTipo" onchange="applyFilters()" style="font-size:12px;padding:5px 10px"><option value="">Pública / Privada</option></select>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">✕ Limpiar filtros</button>
+    <span style="font-size:12px;color:var(--text3)">Mostrando <strong id="fCount" style="color:var(--navy)">38</strong> IE</span>
+    <div class="ml-auto flex items-center gap-2">
+      <button class="btn btn-outline btn-sm" onclick="openCompare()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        Comparar IE
+      </button>
+      <button class="btn btn-gold btn-sm" onclick="exportPDF()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Exportar PDF
+      </button>
+      <button class="btn btn-teal btn-sm" onclick="exportCSV()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Excel CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CONTENIDO PRINCIPAL
+══════════════════════════════════════════ -->
+<main class="max-w-7xl mx-auto px-4 py-5" id="main-content">
+
+<!-- TABS -->
+<div class="no-print mb-0">
+  <div style="display:flex;gap:2px;background:var(--border2);padding:2px;border-radius:8px 8px 0 0;width:fit-content">
+    <button class="tab-btn active" onclick="switchTab('overview')" id="tab-overview">📊 Resumen General</button>
+    <button class="tab-btn" onclick="switchTab('grados')" id="tab-grados">📚 Por Grado</button>
+    <button class="tab-btn" onclick="switchTab('ie')" id="tab-ie">🏫 Por Institución</button>
+    <button class="tab-btn" onclick="switchTab('territorial')" id="tab-territorial">🗺️ Territorial</button>
+  </div>
+</div>
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:0 8px 8px 8px;padding:20px 20px 24px" id="tab-content">
+
+<!-- ═══ TAB: RESUMEN GENERAL ═══ -->
+<div class="tab-pane active" id="pane-overview">
+
+  <!-- KPI Row 1 -->
+  <div class="sec-title">Indicadores Clave — UGEL Espinar</div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+    <div class="card card-accent p-4" style="border-left-color:var(--navy)">
+      <p style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Total Matrículas</p>
+      <p class="kpi-big mt-1" style="font-size:2.4rem;color:var(--navy)" id="kpi-total">6,133</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px">estudiantes matriculados</p>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <span class="badge" style="background:#E3F0FF;color:var(--navy)">H: <span id="kpi-var">3,100</span></span>
+        <span class="badge" style="background:#FFE8F0;color:#A52040">M: <span id="kpi-muj">3,033</span></span>
+      </div>
+    </div>
+    <div class="card card-accent p-4" style="border-left-color:var(--teal)">
+      <p style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Instituciones Ed.</p>
+      <p class="kpi-big mt-1" style="font-size:2.4rem;color:var(--teal)" id="kpi-ie">38</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px">reportando en SIAGIE</p>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <span class="badge" style="background:#E6F5F2;color:var(--teal)">Púb: <span id="kpi-pub">32</span></span>
+        <span class="badge" style="background:#FFF8E8;color:var(--gold)">Priv: <span id="kpi-priv">6</span></span>
+      </div>
+    </div>
+    <div class="card card-accent p-4" style="border-left-color:var(--gold)">
+      <p style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Secciones Activas</p>
+      <p class="kpi-big mt-1" style="font-size:2.4rem;color:var(--gold)" id="kpi-sec">310</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px">aulas en funcionamiento</p>
+      <p style="font-size:12px;margin-top:8px">Prom. <strong id="kpi-secprom" style="color:var(--gold)">—</strong> est/sección</p>
+    </div>
+    <div class="card card-accent p-4" style="border-left-color:#558B2F">
+      <p style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Mat. Definitiva</p>
+      <p class="kpi-big mt-1" style="font-size:2.4rem;color:#558B2F" id="kpi-def">6,108</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:4px" id="kpi-def-pct">99.6% confirmadas</p>
+      <p style="font-size:12px;color:var(--gold);margin-top:8px">En proceso: <strong id="kpi-proc">25</strong></p>
+    </div>
+  </div>
+
+  <!-- KPI Row 2 -->
+  <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-5">
+    <div class="card p-3 text-center">
+      <p style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Varones</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:#1565C0" id="b-var">3,100</p>
+      <p style="font-size:11px;color:var(--text3)" id="b-var-pct">50.5%</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Mujeres</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:#A52040" id="b-muj">3,033</p>
+      <p style="font-size:11px;color:var(--text3)" id="b-muj-pct">49.5%</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Distritos</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--navy)" id="b-dist">8</p>
+      <p style="font-size:11px;color:var(--text3)">de Espinar</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">DNI Validado</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--teal)" id="b-dni">6,131</p>
+      <p style="font-size:11px;color:var(--text3)">99.97%</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">Sin DNI</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--red)" id="b-sdni">2</p>
+      <p style="font-size:11px;color:var(--text3)">estudiantes</p>
+    </div>
+    <div class="card p-3 text-center">
+      <p style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">En Proceso</p>
+      <p style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--gold)" id="b-proc">25</p>
+      <p style="font-size:11px;color:var(--text3)">matrículas</p>
+    </div>
+  </div>
+
+  <!-- Gráficos fila 1 -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+    <div class="card p-4 lg:col-span-2">
+      <p class="sec-title">Matrículas por Grado — Hombres vs Mujeres</p>
+      <div style="position:relative;height:220px"><canvas id="chartGrado"></canvas></div>
+    </div>
+    <div class="card p-4">
+      <p class="sec-title">Género</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="background:#E3F0FF;border-radius:8px;padding:10px;text-align:center">
+          <p style="font-size:10px;font-weight:600;color:#1565C0;text-transform:uppercase">Hombres</p>
+          <p style="font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:700;color:#1565C0" id="g-var">3,100</p>
+          <p style="font-size:11px;color:#1565C0" id="g-var-pct">50.5%</p>
+        </div>
+        <div style="background:#FFE8F0;border-radius:8px;padding:10px;text-align:center">
+          <p style="font-size:10px;font-weight:600;color:#A52040;text-transform:uppercase">Mujeres</p>
+          <p style="font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:700;color:#A52040" id="g-muj">3,033</p>
+          <p style="font-size:11px;color:#A52040" id="g-muj-pct">49.5%</p>
+        </div>
+      </div>
+      <div style="position:relative;height:130px"><canvas id="chartGenero"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Gráficos fila 2 -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    <div class="card p-4">
+      <p class="sec-title">Top 10 IE por Matrículas</p>
+      <div style="position:relative;height:270px"><canvas id="chartTopIE"></canvas></div>
+    </div>
+    <div class="card p-4">
+      <p class="sec-title">Distribución por Distrito</p>
+      <div style="position:relative;height:270px"><canvas id="chartDistrito"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <p class="sec-title">Alertas y Observaciones</p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" id="alertas-grid"></div>
+
+  <!-- Gestión + Estado -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="card p-4">
+      <p class="sec-title">Gestión IE</p>
+      <div style="position:relative;height:170px"><canvas id="chartTipo"></canvas></div>
+    </div>
+    <div class="card p-4">
+      <p class="sec-title">Estado de Matrícula</p>
+      <div style="position:relative;height:170px"><canvas id="chartEstado"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /pane-overview -->
+
+<!-- ═══ TAB: POR GRADO ═══ -->
+<div class="tab-pane" id="pane-grados">
+  <p class="sec-title">Detalle de Matrículas por Grado — Con Cifras</p>
+
+  <!-- 5 tarjetas de grado -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+    <div class="grade-card" style="--gc:var(--g1)"><div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--g1)"></div>
+      <p style="font-size:11px;font-weight:700;color:var(--g1);text-transform:uppercase;letter-spacing:.05em">1.er Grado</p>
+      <p style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--g1);line-height:1;margin:8px 0 2px" id="gc1-t">1,319</p>
+      <p style="font-size:11px;color:var(--text3)">estudiantes</p>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#1565C0">Hombres</span><strong id="gc1-h" style="color:#1565C0">669</strong></div><div class="pb mt-1"><div class="pf" id="gc1-hb" style="background:#1565C0"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#A52040">Mujeres</span><strong id="gc1-m" style="color:#A52040">650</strong></div><div class="pb mt-1"><div class="pf" id="gc1-mb" style="background:#A52040"></div></div></div>
+      </div>
+    </div>
+    <div class="grade-card" style="--gc:var(--g2)"><div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--g2)"></div>
+      <p style="font-size:11px;font-weight:700;color:var(--g2);text-transform:uppercase;letter-spacing:.05em">2.do Grado</p>
+      <p style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--g2);line-height:1;margin:8px 0 2px" id="gc2-t">1,302</p>
+      <p style="font-size:11px;color:var(--text3)">estudiantes</p>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#1565C0">Hombres</span><strong id="gc2-h" style="color:#1565C0">642</strong></div><div class="pb mt-1"><div class="pf" id="gc2-hb" style="background:#1565C0"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#A52040">Mujeres</span><strong id="gc2-m" style="color:#A52040">660</strong></div><div class="pb mt-1"><div class="pf" id="gc2-mb" style="background:#A52040"></div></div></div>
+      </div>
+    </div>
+    <div class="grade-card" style="--gc:var(--g3)"><div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--g3)"></div>
+      <p style="font-size:11px;font-weight:700;color:var(--g3);text-transform:uppercase;letter-spacing:.05em">3.er Grado</p>
+      <p style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--g3);line-height:1;margin:8px 0 2px" id="gc3-t">1,152</p>
+      <p style="font-size:11px;color:var(--text3)">estudiantes</p>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#1565C0">Hombres</span><strong id="gc3-h" style="color:#1565C0">570</strong></div><div class="pb mt-1"><div class="pf" id="gc3-hb" style="background:#1565C0"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#A52040">Mujeres</span><strong id="gc3-m" style="color:#A52040">582</strong></div><div class="pb mt-1"><div class="pf" id="gc3-mb" style="background:#A52040"></div></div></div>
+      </div>
+    </div>
+    <div class="grade-card" style="--gc:var(--g4)"><div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--g4)"></div>
+      <p style="font-size:11px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:.05em">4.to Grado</p>
+      <p style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--g4);line-height:1;margin:8px 0 2px" id="gc4-t">1,188</p>
+      <p style="font-size:11px;color:var(--text3)">estudiantes</p>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#1565C0">Hombres</span><strong id="gc4-h" style="color:#1565C0">606</strong></div><div class="pb mt-1"><div class="pf" id="gc4-hb" style="background:#1565C0"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#A52040">Mujeres</span><strong id="gc4-m" style="color:#A52040">582</strong></div><div class="pb mt-1"><div class="pf" id="gc4-mb" style="background:#A52040"></div></div></div>
+      </div>
+    </div>
+    <div class="grade-card" style="--gc:var(--g5)"><div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--g5)"></div>
+      <p style="font-size:11px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.05em">5.to Grado</p>
+      <p style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--g5);line-height:1;margin:8px 0 2px" id="gc5-t">1,172</p>
+      <p style="font-size:11px;color:var(--text3)">estudiantes</p>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#1565C0">Hombres</span><strong id="gc5-h" style="color:#1565C0">613</strong></div><div class="pb mt-1"><div class="pf" id="gc5-hb" style="background:#1565C0"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#A52040">Mujeres</span><strong id="gc5-m" style="color:#A52040">559</strong></div><div class="pb mt-1"><div class="pf" id="gc5-mb" style="background:#A52040"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfico línea grados -->
+  <div class="card p-4 mb-4">
+    <p class="sec-title">Evolución Grado × Género</p>
+    <div style="position:relative;height:240px"><canvas id="chartGradoLinea"></canvas></div>
+  </div>
+
+  <!-- Tabla grados -->
+  <div class="card p-4">
+    <p class="sec-title">Resumen Tabular por Grado</p>
+    <table class="tbl">
+      <thead><tr><th>Grado</th><th class="r">Hombres</th><th class="r">Mujeres</th><th class="r">Total</th><th class="r">% Hombres</th><th class="r">% Mujeres</th><th>Distribución</th></tr></thead>
+      <tbody id="tbl-grados"></tbody>
+      <tfoot><tr><td>TOTAL</td><td class="r" id="tf-h">3,100</td><td class="r" id="tf-m">3,033</td><td class="r" id="tf-t">6,133</td><td class="r">50.5%</td><td class="r">49.5%</td><td></td></tr></tfoot>
+    </table>
+  </div>
+</div><!-- /pane-grados -->
+
+<!-- ═══ TAB: POR IE ═══ -->
+<div class="tab-pane" id="pane-ie">
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <p class="sec-title mb-0" style="border:none;padding:0">Búsqueda y Detalle por IE</p>
+    <div style="flex:1;min-width:200px">
+      <input type="text" id="searchIE" placeholder="🔍 Buscar por nombre, código o distrito…" oninput="filterTable()" style="width:100%"/>
+    </div>
+    <select id="fGradoIE" onchange="filterTable()" style="font-size:12px;padding:5px 10px">
+      <option value="">Todos los grados</option>
+      <option>1ro</option><option>2do</option><option>3ro</option><option>4to</option><option>5to</option>
+    </select>
+    <select id="fTipoIE" onchange="filterTable()" style="font-size:12px;padding:5px 10px">
+      <option value="">Todas las gestiones</option><option>Pública</option><option>Privada</option>
+    </select>
+    <span style="font-size:12px;color:var(--text3)">Resultados: <strong id="rowCount" style="color:var(--navy)">—</strong></span>
+  </div>
+  <div style="overflow-x:auto;max-height:500px;overflow-y:auto;border-radius:8px;border:1px solid var(--border)">
+    <table class="tbl" id="tableIE">
+      <thead>
+        <tr>
+          <th onclick="sortTable('ie')" style="cursor:pointer"># IE ↕</th>
+          <th onclick="sortTable('cod')" style="cursor:pointer">Código ↕</th>
+          <th>Institución Educativa</th>
+          <th onclick="sortTable('distrito')" style="cursor:pointer">Distrito ↕</th>
+          <th>Gestión</th>
+          <th class="r" onclick="sortTable('total')" style="cursor:pointer">Total ↕</th>
+          <th class="r">H</th><th class="r">M</th>
+          <th class="r">1ro</th><th class="r">2do</th><th class="r">3ro</th><th class="r">4to</th><th class="r">5to</th>
+          <th class="r">Secc.</th>
+          <th class="r">Def.</th>
+          <th class="r">DNI ✓</th>
+          <th class="r">Sin DNI</th>
+          <th>Cobertura</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <!-- Ficha de IE al hacer click -->
+  <div id="ie-ficha" class="card p-4 mt-4" style="display:none">
+    <p class="sec-title" id="ficha-title">Ficha de IE</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div id="ficha-stats"></div>
+      <div style="position:relative;height:200px"><canvas id="ficha-chart"></canvas></div>
+    </div>
+  </div>
+</div><!-- /pane-ie -->
+
+<!-- ═══ TAB: TERRITORIAL ═══ -->
+<div class="tab-pane" id="pane-territorial">
+  <p class="sec-title">Distribución Territorial — 8 Distritos de Espinar</p>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    <div class="card p-4">
+      <p class="sec-title">Matrículas por Distrito (H + M apilado)</p>
+      <div style="position:relative;height:280px"><canvas id="chartDistDetalle"></canvas></div>
+    </div>
+    <div class="card p-4">
+      <p class="sec-title">Cifras por Distrito</p>
+      <div id="dist-detail-list" style="overflow-y:auto;max-height:280px"></div>
+    </div>
+  </div>
+  <div class="card p-4">
+    <p class="sec-title">Mapa de Calor — IE por Distrito (tamaño = matrícula)</p>
+    <div id="heatmap-dist"></div>
+  </div>
+</div><!-- /pane-territorial -->
+
+</div><!-- /tab-content -->
+</main><!-- /main -->
+
+<!-- ══════════════════════════════════════════
+     MODAL COMPARADOR
+══════════════════════════════════════════ -->
+<div class="modal-overlay no-print" id="modal-compare">
+  <div class="modal-box">
+    <div style="background:var(--navy);color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <h2 style="font-family:'Playfair Display',serif;font-size:16px">Comparar Instituciones Educativas</h2>
+      <button onclick="closeCompare()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px">×</button>
+    </div>
+    <div style="padding:20px">
+      <!-- Selección -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:6px">Selecciona hasta 4 IE para comparar:</label>
+          <input type="text" id="searchCompare" placeholder="Filtrar IE…" oninput="filterCompareList()" style="width:100%;margin-bottom:8px"/>
+          <div id="compare-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:4px"></div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:6px">IE seleccionadas:</label>
+          <div id="compare-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:36px;margin-bottom:12px"></div>
+          <button class="btn btn-primary" onclick="runCompare()" style="width:100%">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+            Generar Comparativa
+          </button>
+        </div>
+      </div>
+      <!-- Resultado -->
+      <div id="compare-result" style="display:none">
+        <hr style="margin:0 0 16px;border-color:var(--border)"/>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div><p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px">Total de Matrículas</p><div style="position:relative;height:200px"><canvas id="cmp-total"></canvas></div></div>
+          <div><p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px">Hombres vs Mujeres</p><div style="position:relative;height:200px"><canvas id="cmp-genero"></canvas></div></div>
+        </div>
+        <div><p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px">Distribución por Grado</p><div style="position:relative;height:220px"><canvas id="cmp-grado"></canvas></div></div>
+        <div id="cmp-table" style="margin-top:16px;overflow-x:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- FOOTER -->
+<footer style="background:var(--navy);color:rgba(255,255,255,.5);text-align:center;padding:12px;font-size:11px;margin-top:20px" class="no-print">
+  UGEL Espinar · Sistema de Información de Matrículas · Reporte SIAGIE 2026 · Generado el 01/06/2026
+</footer>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+/* ── PALETA CHARTS (institucional) ── */
+const CP={
+  navy:'#1A3A5C', navy2:'#234E78', teal:'#0D7C66', teal2:'#138F75',
+  gold:'#C8860A', red:'#C0392B', blue:'#1565C0', rose:'#A52040',
+  green:'#33691E', orange:'#E65100', slate:'#546E7A', purple:'#6A1B9A',
+  cyan:'#00838F', brown:'#5D4037'
+};
+const PAL=[CP.navy,CP.teal,CP.gold,CP.blue,CP.green,CP.orange,CP.rose,CP.purple,CP.cyan,CP.brown,CP.slate,CP.navy2];
+const GPAL=['#1565C0','#0277BD','#00695C','#558B2F','#E65100'];
+const TT={backgroundColor:'#fff',titleColor:CP.navy,bodyColor:'#3D5166',borderColor:'#D1DDE9',borderWidth:1,padding:10,cornerRadius:6,displayColors:true};
+function n(v){return Number(v).toLocaleString('es-PE');}
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+
+/* ── DATOS ── */
+const REAL=[{"ie":"TENIENTE CORONEL PEDRO RUIZ GALLO","distrito":"ESPINAR","cp":"HUARCACANTO","cod":"0680082","tipo":"Pública","total":873,"mat_def":873,"mat_proc":0,"dni_val":873,"sin_dni":0,"secciones":32,"p1h":107,"p1m":81,"p2h":92,"p2m":98,"p3h":80,"p3m":92,"p4h":86,"p4m":74,"p5h":87,"p5m":76,"varones":452,"mujeres":421},{"ie":"SAN MIGUEL","distrito":"PICHIGUA","cp":"SAN MIGUEL","cod":"0783191","tipo":"Pública","total":87,"mat_def":87,"mat_proc":0,"dni_val":87,"sin_dni":0,"secciones":5,"p1h":12,"p1m":12,"p2h":12,"p2m":9,"p3h":5,"p3m":6,"p4h":8,"p4m":7,"p5h":4,"p5m":12,"varones":41,"mujeres":46},{"ie":"CLORINDA MATTO DE TURNER","distrito":"SUYCKUTAMBO","cp":"VIRGINIYOC","cod":"0783209","tipo":"Pública","total":46,"mat_def":46,"mat_proc":0,"dni_val":46,"sin_dni":0,"secciones":5,"p1h":2,"p1m":3,"p2h":6,"p2m":6,"p3h":3,"p3m":1,"p4h":5,"p4m":10,"p5h":4,"p5m":6,"varones":20,"mujeres":26},{"ie":"JOSE MARIA ARGUEDAS","distrito":"COPORAQUE","cp":"MACHU PUENTE","cod":"0783225","tipo":"Pública","total":123,"mat_def":123,"mat_proc":0,"dni_val":123,"sin_dni":0,"secciones":7,"p1h":9,"p1m":14,"p2h":15,"p2m":10,"p3h":11,"p3m":12,"p4h":14,"p4m":9,"p5h":17,"p5m":12,"varones":66,"mujeres":57},{"ie":"JOSE ANTONIO ENCINAS","distrito":"ESPINAR","cp":"TINTAYA MARQUIRI","cod":"0931345","tipo":"Pública","total":48,"mat_def":48,"mat_proc":0,"dni_val":48,"sin_dni":0,"secciones":5,"p1h":6,"p1m":5,"p2h":6,"p2m":6,"p3h":3,"p3m":2,"p4h":9,"p4m":3,"p5h":4,"p5m":4,"varones":28,"mujeres":20},{"ie":"INCA GARCILASO DE LA VEGA","distrito":"ESPINAR","cp":"YAURI","cod":"0931378","tipo":"Privada","total":127,"mat_def":123,"mat_proc":4,"dni_val":127,"sin_dni":0,"secciones":5,"p1h":15,"p1m":13,"p2h":13,"p2m":15,"p3h":16,"p3m":9,"p4h":21,"p4m":11,"p5h":7,"p5m":7,"varones":72,"mujeres":55},{"ie":"56175 SAGRADO CORAZON DE JESUS","distrito":"ESPINAR","cp":"YAURI","cod":"0931436","tipo":"Pública","total":645,"mat_def":645,"mat_proc":0,"dni_val":645,"sin_dni":0,"secciones":20,"p1h":60,"p1m":73,"p2h":70,"p2m":63,"p3h":61,"p3m":69,"p4h":71,"p4m":53,"p5h":63,"p5m":62,"varones":325,"mujeres":320},{"ie":"56207 RICARDO PALMA SORIANO","distrito":"ESPINAR","cp":"SUERO CANTO","cod":"0931469","tipo":"Pública","total":411,"mat_def":411,"mat_proc":0,"dni_val":411,"sin_dni":0,"secciones":15,"p1h":38,"p1m":50,"p2h":35,"p2m":55,"p3h":40,"p3m":33,"p4h":36,"p4m":42,"p5h":45,"p5m":37,"varones":194,"mujeres":217},{"ie":"56191 INDEPENDENCIA AMERICANA","distrito":"PALLPATA","cp":"HECTOR TEJADA","cod":"1062397","tipo":"Pública","total":222,"mat_def":222,"mat_proc":0,"dni_val":222,"sin_dni":0,"secciones":10,"p1h":28,"p1m":23,"p2h":23,"p2m":22,"p3h":24,"p3m":18,"p4h":28,"p4m":21,"p5h":14,"p5m":21,"varones":117,"mujeres":105},{"ie":"56445","distrito":"SUYCKUTAMBO","cp":"CONCAJA","cod":"1320639","tipo":"Pública","total":27,"mat_def":27,"mat_proc":0,"dni_val":27,"sin_dni":0,"secciones":5,"p1h":2,"p1m":6,"p2h":1,"p2m":4,"p3h":1,"p3m":4,"p4h":0,"p4m":3,"p5h":2,"p5m":4,"varones":6,"mujeres":21},{"ie":"56218","distrito":"COPORAQUE","cp":"ASILLOPATA","cod":"1320647","tipo":"Pública","total":18,"mat_def":18,"mat_proc":0,"dni_val":18,"sin_dni":0,"secciones":5,"p1h":1,"p1m":1,"p2h":5,"p2m":1,"p3h":1,"p3m":2,"p4h":2,"p4m":3,"p5h":2,"p5m":0,"varones":11,"mujeres":7},{"ie":"56233","distrito":"PICHIGUA","cp":"CHAÑI ALCCASANA","cod":"1320654","tipo":"Pública","total":26,"mat_def":26,"mat_proc":0,"dni_val":26,"sin_dni":0,"secciones":5,"p1h":2,"p1m":1,"p2h":2,"p2m":2,"p3h":4,"p3m":2,"p4h":2,"p4m":1,"p5h":9,"p5m":1,"varones":19,"mujeres":7},{"ie":"56394 CESAR VALLEJO","distrito":"ESPINAR","cp":"YAURI","cod":"1343789","tipo":"Pública","total":288,"mat_def":288,"mat_proc":0,"dni_val":288,"sin_dni":0,"secciones":10,"p1h":36,"p1m":26,"p2h":28,"p2m":34,"p3h":28,"p3m":28,"p4h":19,"p4m":36,"p5h":25,"p5m":28,"varones":136,"mujeres":152},{"ie":"56214 ANDRES AVELINO CACERES","distrito":"COPORAQUE","cp":"QQUEROCCOLLANA","cod":"1343797","tipo":"Pública","total":28,"mat_def":28,"mat_proc":0,"dni_val":28,"sin_dni":0,"secciones":5,"p1h":4,"p1m":2,"p2h":0,"p2m":4,"p3h":1,"p3m":3,"p4h":2,"p4m":2,"p5h":4,"p5m":6,"varones":11,"mujeres":17},{"ie":"CIENCIAS PITAGORAS","distrito":"ESPINAR","cp":"YAURI","cod":"1392992","tipo":"Privada","total":40,"mat_def":40,"mat_proc":0,"dni_val":40,"sin_dni":0,"secciones":5,"p1h":4,"p1m":5,"p2h":7,"p2m":5,"p3h":5,"p3m":6,"p4h":1,"p4m":2,"p5h":3,"p5m":2,"varones":20,"mujeres":20},{"ie":"SAN AGUSTIN DE HIPONA","distrito":"ESPINAR","cp":"YAURI","cod":"1393065","tipo":"Privada","total":2,"mat_def":2,"mat_proc":0,"dni_val":2,"sin_dni":0,"secciones":5,"p1h":1,"p1m":0,"p2h":0,"p2m":0,"p3h":0,"p3m":0,"p4h":0,"p4m":0,"p5h":1,"p5m":0,"varones":2,"mujeres":0},{"ie":"LEONCIO PRADO - AMAUTA","distrito":"ESPINAR","cp":"HUARCACANTO","cod":"1393123","tipo":"Privada","total":36,"mat_def":36,"mat_proc":0,"dni_val":36,"sin_dni":0,"secciones":5,"p1h":14,"p1m":10,"p2h":2,"p2m":2,"p3h":1,"p3m":3,"p4h":1,"p4m":2,"p5h":1,"p5m":0,"varones":19,"mujeres":17},{"ie":"57003 ALMIRANTE MIGUEL GRAU","distrito":"ESPINAR","cp":"YAURI","cod":"1393131","tipo":"Pública","total":468,"mat_def":466,"mat_proc":2,"dni_val":468,"sin_dni":0,"secciones":15,"p1h":55,"p1m":41,"p2h":52,"p2m":45,"p3h":44,"p3m":50,"p4h":48,"p4m":45,"p5h":48,"p5m":40,"varones":247,"mujeres":221},{"ie":"JAYUNI MAYUCHULLO","distrito":"PALLPATA","cp":"JAYUNI MAYUCHULLO","cod":"1393180","tipo":"Pública","total":25,"mat_def":25,"mat_proc":0,"dni_val":25,"sin_dni":0,"secciones":5,"p1h":2,"p1m":2,"p2h":2,"p2m":2,"p3h":4,"p3m":2,"p4h":3,"p4m":1,"p5h":4,"p5m":3,"varones":15,"mujeres":10},{"ie":"ALFREDO BRYCE ECHENIQUE","distrito":"ESPINAR","cp":"YAURI","cod":"1393248","tipo":"Privada","total":19,"mat_def":0,"mat_proc":19,"dni_val":19,"sin_dni":0,"secciones":5,"p1h":0,"p1m":0,"p2h":2,"p2m":1,"p3h":2,"p3m":1,"p4h":2,"p4m":3,"p5h":2,"p5m":6,"varones":8,"mujeres":11},{"ie":"FARADAY","distrito":"ESPINAR","cp":"YAURI","cod":"1393313","tipo":"Privada","total":34,"mat_def":34,"mat_proc":0,"dni_val":34,"sin_dni":0,"secciones":5,"p1h":3,"p1m":2,"p2h":3,"p2m":3,"p3h":6,"p3m":3,"p4h":5,"p4m":4,"p5h":4,"p5m":1,"varones":21,"mujeres":13},{"ie":"K'ANAKUNAQ TIKARINAN YACHAYWASI","distrito":"COPORAQUE","cp":"MAMANIHUAYTA","cod":"1397637","tipo":"Pública","total":64,"mat_def":64,"mat_proc":0,"dni_val":64,"sin_dni":0,"secciones":5,"p1h":8,"p1m":4,"p2h":5,"p2m":9,"p3h":7,"p3m":3,"p4h":9,"p4m":6,"p5h":3,"p5m":10,"varones":32,"mujeres":32},{"ie":"TAHUAPALCCA","distrito":"COPORAQUE","cp":"TAHUAPALCA","cod":"1525617","tipo":"Pública","total":44,"mat_def":44,"mat_proc":0,"dni_val":44,"sin_dni":0,"secciones":5,"p1h":4,"p1m":3,"p2h":3,"p2m":5,"p3h":3,"p3m":10,"p4h":0,"p4m":5,"p5h":5,"p5m":6,"varones":15,"mujeres":29},{"ie":"56435","distrito":"ESPINAR","cp":"MIRAFLORES","cod":"1579325","tipo":"Pública","total":287,"mat_def":287,"mat_proc":0,"dni_val":287,"sin_dni":0,"secciones":10,"p1h":30,"p1m":26,"p2h":42,"p2m":26,"p3h":27,"p3m":25,"p4h":29,"p4m":29,"p5h":31,"p5m":22,"varones":159,"mujeres":128},{"ie":"501367 INMACULADA CONCEPCION","distrito":"ESPINAR","cp":"YAURI","cod":"1723469","tipo":"Pública","total":168,"mat_def":168,"mat_proc":0,"dni_val":167,"sin_dni":1,"secciones":6,"p1h":20,"p1m":30,"p2h":9,"p2m":19,"p3h":13,"p3m":16,"p4h":16,"p4m":14,"p5h":18,"p5m":13,"varones":76,"mujeres":92},{"ie":"56197","distrito":"ESPINAR","cp":"ALTO HUARCA","cod":"1727775","tipo":"Pública","total":113,"mat_def":113,"mat_proc":0,"dni_val":113,"sin_dni":0,"secciones":5,"p1h":13,"p1m":5,"p2h":14,"p2m":12,"p3h":8,"p3m":12,"p4h":13,"p4m":11,"p5h":15,"p5m":10,"varones":63,"mujeres":50},{"ie":"56605","distrito":"ESPINAR","cp":"PHINAYA","cod":"1773456","tipo":"Pública","total":28,"mat_def":28,"mat_proc":0,"dni_val":28,"sin_dni":0,"secciones":5,"p1h":0,"p1m":4,"p2h":3,"p2m":2,"p3h":4,"p3m":4,"p4h":3,"p4m":3,"p5h":4,"p5m":1,"varones":14,"mujeres":14},{"ie":"501304","distrito":"CONDOROMA","cp":"OSCCOLLO","cod":"1773464","tipo":"Pública","total":24,"mat_def":24,"mat_proc":0,"dni_val":24,"sin_dni":0,"secciones":5,"p1h":1,"p1m":3,"p2h":3,"p2m":2,"p3h":3,"p3m":0,"p4h":3,"p4m":5,"p5h":1,"p5m":3,"varones":11,"mujeres":13},{"ie":"CORONEL LADISLAO ESPINAR","distrito":"ESPINAR","cp":"YAURI","cod":"0236646","tipo":"Pública","total":784,"mat_def":784,"mat_proc":0,"dni_val":783,"sin_dni":1,"secciones":29,"p1h":84,"p1m":95,"p2h":74,"p2m":96,"p3h":53,"p3m":73,"p4h":76,"p4m":68,"p5h":81,"p5m":84,"varones":368,"mujeres":416},{"ie":"HECTOR TEJADA","distrito":"PALLPATA","cp":"HECTOR TEJADA","cod":"0518282","tipo":"Pública","total":376,"mat_def":376,"mat_proc":0,"dni_val":376,"sin_dni":0,"secciones":15,"p1h":49,"p1m":44,"p2h":34,"p2m":34,"p3h":44,"p3m":35,"p4h":44,"p4m":34,"p5h":33,"p5m":25,"varones":204,"mujeres":172},{"ie":"ADVENTISTA","distrito":"ESPINAR","cp":"YAURI","cod":"0579433","tipo":"Privada","total":168,"mat_def":168,"mat_proc":0,"dni_val":168,"sin_dni":0,"secciones":8,"p1h":16,"p1m":13,"p2h":17,"p2m":19,"p3h":18,"p3m":24,"p4h":12,"p4m":21,"p5h":13,"p5m":15,"varones":76,"mujeres":92},{"ie":"PICHIGUA","distrito":"PICHIGUA","cp":"SANTA LUCIA DE PICHIGUA","cod":"0579441","tipo":"Pública","total":64,"mat_def":64,"mat_proc":0,"dni_val":64,"sin_dni":0,"secciones":5,"p1h":8,"p1m":7,"p2h":6,"p2m":5,"p3h":5,"p3m":4,"p4h":7,"p4m":6,"p5h":8,"p5m":8,"varones":34,"mujeres":30},{"ie":"TUPAC AMARU","distrito":"COPORAQUE","cp":"URINSAYA","cod":"0617779","tipo":"Pública","total":121,"mat_def":121,"mat_proc":0,"dni_val":121,"sin_dni":0,"secciones":7,"p1h":14,"p1m":15,"p2h":17,"p2m":16,"p3h":13,"p3m":4,"p4h":5,"p4m":17,"p5h":13,"p5m":7,"varones":62,"mujeres":59},{"ie":"BARTOLOME DE LAS CASAS","distrito":"COPORAQUE","cp":"HUAYHUAHUASI","cod":"0617787","tipo":"Pública","total":43,"mat_def":43,"mat_proc":0,"dni_val":43,"sin_dni":0,"secciones":5,"p1h":2,"p1m":1,"p2h":3,"p2m":3,"p3h":6,"p3m":1,"p4h":3,"p4m":7,"p5h":8,"p5m":9,"varones":22,"mujeres":21},{"ie":"GRAL JUAN VELASCO ALVARADO","distrito":"ALTO PICHIGUA","cp":"ACCOCUNCA","cod":"0617837","tipo":"Pública","total":106,"mat_def":106,"mat_proc":0,"dni_val":106,"sin_dni":0,"secciones":6,"p1h":6,"p1m":13,"p2h":12,"p2m":7,"p3h":12,"p3m":12,"p4h":12,"p4m":11,"p5h":13,"p5m":8,"varones":55,"mujeres":51},{"ie":"PEDRO JULIO VALDIVIA DEZA","distrito":"CONDOROMA","cp":"CONDOROMA","cod":"0617845","tipo":"Pública","total":40,"mat_def":40,"mat_proc":0,"dni_val":40,"sin_dni":0,"secciones":5,"p1h":3,"p1m":6,"p2h":3,"p2m":7,"p3h":5,"p3m":5,"p4h":1,"p4m":4,"p5h":3,"p5m":3,"varones":15,"mujeres":25},{"ie":"JOSE CARLOS MARIATEGUI","distrito":"OCORURO","cp":"OCORURO","cod":"0636944","tipo":"Pública","total":55,"mat_def":55,"mat_proc":0,"dni_val":55,"sin_dni":0,"secciones":5,"p1h":4,"p1m":6,"p2h":8,"p2m":9,"p3h":5,"p3m":3,"p4h":7,"p4m":4,"p5h":8,"p5m":1,"varones":32,"mujeres":23},{"ie":"HORACIO ZEBALLOS GAMEZ","distrito":"COPORAQUE","cp":"COPORAQUE","cod":"0639450","tipo":"Pública","total":55,"mat_def":55,"mat_proc":0,"dni_val":55,"sin_dni":0,"secciones":5,"p1h":6,"p1m":5,"p2h":13,"p2m":2,"p3h":4,"p3m":5,"p4h":3,"p4m":5,"p5h":6,"p5m":6,"varones":32,"mujeres":23}];
+
+let RAW=[...REAL], FILTERED=[...REAL], tableCache=[], sortKey='total', sortAsc=false;
+const charts={};
+const compareSelected=new Set();
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+/* ── TABS ── */
+function switchTab(t){
+  ['overview','grados','ie','territorial'].forEach(id=>{
+    document.getElementById('pane-'+id).classList.toggle('active',id===t);
+    document.getElementById('tab-'+id).classList.toggle('active',id===t);
+  });
+  if(t==='territorial') drawTerritorial();
+}
+
+/* ── FILTROS ── */
+function populateFilters(){
+  const u=(k)=>[...new Set(RAW.map(r=>r[k]).filter(Boolean))].sort();
+  fillS('fDistrito','Todos los Distritos',u('distrito'));
+  fillS('fTipo','Pública / Privada',u('tipo'));
+}
+function fillS(id,ph,opts){const s=document.getElementById(id);s.innerHTML=`<option value="">${ph}</option>`;opts.forEach(o=>{const op=document.createElement('option');op.value=op.textContent=o;s.appendChild(op);});}
+function gv(id){return document.getElementById(id).value;}
+function applyFilters(){
+  const d=gv('fDistrito'),t=gv('fTipo');
+  FILTERED=RAW.filter(r=>(!d||r.distrito===d)&&(!t||r.tipo===t));
+  setText('fCount',FILTERED.length);
+  renderAll();
+}
+function resetFilters(){['fDistrito','fTipo'].forEach(id=>document.getElementById(id).value='');FILTERED=[...RAW];setText('fCount',FILTERED.length);renderAll();}
+
+/* ── LEER EXCEL ── */
+function readFile(f){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const json=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!json.length){showToast('❌ Archivo vacío',true);return;}
+      RAW=parseRows(json);
+      document.getElementById('upload-label').textContent='✓ Datos recargados';
+      setText('last-updated','Actualizado '+new Date().toLocaleTimeString('es-PE'));
+      populateFilters(); FILTERED=[...RAW]; setText('fCount',RAW.length); renderAll();
+      showToast('✓ '+RAW.length+' IE cargadas correctamente');
+    }catch(err){showToast('❌ Error: '+err.message,true);}
+  };
+  r.readAsBinaryString(f);
+}
+function parseRows(rows){
+  return rows.filter(r=>{const v=Object.values(r)[8];return v&&!String(v).startsWith('Total')&&!String(v).startsWith('Nombre')&&!String(v).startsWith('DRE');}).map(r=>{
+    const vals=Object.values(r);
+    const g=i=>Math.max(0,parseInt(vals[i])||0);
+    const tipo=String(vals[11]||'').trim();
+    const pub=tipo.includes('blica')?'Pública':'Privada';
+    const p1h=g(27),p1m=g(28),p2h=g(29),p2m=g(30),p3h=g(31),p3m=g(32),p4h=g(33),p4m=g(34),p5h=g(35),p5m=g(36);
+    return{ie:String(vals[8]).trim(),distrito:String(vals[4]).trim(),cp:String(vals[5]).trim(),cod:String(vals[6]).trim(),tipo:pub,total:g(12),mat_def:g(14),mat_proc:g(16),dni_val:g(19),sin_dni:g(21),secciones:g(23),p1h,p1m,p2h,p2m,p3h,p3m,p4h,p4m,p5h,p5m,varones:p1h+p2h+p3h+p4h+p5h,mujeres:p1m+p2m+p3m+p4m+p5m};
+  });
+}
+
+/* ── RENDER ── */
+function renderAll(){
+  const d=FILTERED; if(!d.length)return;
+  const tot=d.reduce((s,r)=>s+r.total,0);
+  const var_=d.reduce((s,r)=>s+r.varones,0);
+  const muj=d.reduce((s,r)=>s+r.mujeres,0);
+  const sec=d.reduce((s,r)=>s+r.secciones,0);
+  const def=d.reduce((s,r)=>s+r.mat_def,0);
+  const proc=d.reduce((s,r)=>s+r.mat_proc,0);
+  const dni=d.reduce((s,r)=>s+r.dni_val,0);
+  const sindni=d.reduce((s,r)=>s+r.sin_dni,0);
+  const pub=d.filter(r=>r.tipo==='Pública');
+  const priv=d.filter(r=>r.tipo==='Privada');
+  const g1h=d.reduce((s,r)=>s+r.p1h,0),g1m=d.reduce((s,r)=>s+r.p1m,0);
+  const g2h=d.reduce((s,r)=>s+r.p2h,0),g2m=d.reduce((s,r)=>s+r.p2m,0);
+  const g3h=d.reduce((s,r)=>s+r.p3h,0),g3m=d.reduce((s,r)=>s+r.p3m,0);
+  const g4h=d.reduce((s,r)=>s+r.p4h,0),g4m=d.reduce((s,r)=>s+r.p4m,0);
+  const g5h=d.reduce((s,r)=>s+r.p5h,0),g5m=d.reduce((s,r)=>s+r.p5m,0);
+
+  // KPIs
+  setText('kpi-total',n(tot)); setText('kpi-var',n(var_)); setText('kpi-muj',n(muj));
+  setText('kpi-ie',d.length); setText('kpi-pub',pub.length); setText('kpi-priv',priv.length);
+  setText('kpi-sec',n(sec)); setText('kpi-secprom',(tot/sec).toFixed(1));
+  setText('kpi-def',n(def)); setText('kpi-def-pct',(def/tot*100).toFixed(1)+'% confirmadas'); setText('kpi-proc',n(proc));
+  setText('b-var',n(var_)); setText('b-var-pct',(var_/tot*100).toFixed(1)+'%');
+  setText('b-muj',n(muj)); setText('b-muj-pct',(muj/tot*100).toFixed(1)+'%');
+  setText('b-dist',[...new Set(d.map(r=>r.distrito))].length);
+  setText('b-dni',n(dni)); setText('b-sdni',sindni); setText('b-proc',n(proc));
+  setText('g-var',n(var_)); setText('g-var-pct',(var_/tot*100).toFixed(1)+'%');
+  setText('g-muj',n(muj)); setText('g-muj-pct',(muj/tot*100).toFixed(1)+'%');
+
+  // Grado cards
+  const gc=(pfx,h,m)=>{setText(pfx+'-t',n(h+m));setText(pfx+'-h',n(h));setText(pfx+'-m',n(m));const b=document.getElementById(pfx+'-hb');const c=document.getElementById(pfx+'-mb');if(b){b.style.width=(h/(h+m)*100).toFixed(0)+'%';}if(c){c.style.width=(m/(h+m)*100).toFixed(0)+'%';}};
+  gc('gc1',g1h,g1m);gc('gc2',g2h,g2m);gc('gc3',g3h,g3m);gc('gc4',g4h,g4m);gc('gc5',g5h,g5m);
+
+  // Tabla grados
+  const gd=[{l:'1.er Grado',h:g1h,m:g1m},{l:'2.do Grado',h:g2h,m:g2m},{l:'3.er Grado',h:g3h,m:g3m},{l:'4.to Grado',h:g4h,m:g4m},{l:'5.to Grado',h:g5h,m:g5m}];
+  const maxGT=Math.max(...gd.map(g=>g.h+g.m));
+  document.getElementById('tbl-grados').innerHTML=gd.map((g,i)=>`<tr>
+    <td><strong style="color:${GPAL[i]}">${g.l}</strong></td>
+    <td class="r" style="color:#1565C0">${n(g.h)}</td><td class="r" style="color:#A52040">${n(g.m)}</td>
+    <td class="r"><strong>${n(g.h+g.m)}</strong></td>
+    <td class="r">${(g.h/(g.h+g.m)*100).toFixed(1)}%</td><td class="r">${(g.m/(g.h+g.m)*100).toFixed(1)}%</td>
+    <td style="min-width:120px"><div class="pb"><div class="pf" style="width:${((g.h+g.m)/maxGT*100).toFixed(0)}%;background:${GPAL[i]}"></div></div></td></tr>`).join('');
+  setText('tf-h',n(var_));setText('tf-m',n(muj));setText('tf-t',n(tot));
+
+  // Gráficos
+  drawGrado(g1h,g1m,g2h,g2m,g3h,g3m,g4h,g4m,g5h,g5m);
+  drawGenero(var_,muj);
+  drawTopIE(d);
+  drawDistrito(d);
+  drawTipo(pub,priv,tot);
+  drawEstado(def,proc);
+  drawGradoLinea(g1h,g1m,g2h,g2m,g3h,g3m,g4h,g4m,g5h,g5m);
+  buildAlertas(d);
+  buildTable(d);
+  buildCompareList();
+}
+
+function mk(id,cfg){destroyChart(id);const ctx=document.getElementById(id);if(!ctx)return;charts[id]=new Chart(ctx.getContext('2d'),cfg);}
+
+function drawGrado(g1h,g1m,g2h,g2m,g3h,g3m,g4h,g4m,g5h,g5m){
+  mk('chartGrado',{type:'bar',data:{labels:['1.er Grado','2.do Grado','3.er Grado','4.to Grado','5.to Grado'],datasets:[
+    {label:'Hombres',data:[g1h,g2h,g3h,g4h,g5h],backgroundColor:'rgba(21,101,192,.75)',borderColor:CP.blue,borderWidth:1.5,borderRadius:5},
+    {label:'Mujeres',data:[g1m,g2m,g3m,g4m,g5m],backgroundColor:'rgba(165,32,64,.75)',borderColor:CP.rose,borderWidth:1.5,borderRadius:5}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{family:'Source Sans 3',size:12}}},tooltip:{...TT,mode:'index',intersect:false,callbacks:{footer:i=>'Total: '+n(i.reduce((s,x)=>s+x.raw,0))}}},scales:{x:{ticks:{color:'#4A6078',font:{size:11}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#4A6078',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}}}}});
+}
+function drawGenero(h,m){
+  mk('chartGenero',{type:'doughnut',data:{labels:['Hombres','Mujeres'],datasets:[{data:[h,m],backgroundColor:['rgba(21,101,192,.8)','rgba(165,32,64,.8)'],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#4A6078',font:{family:'Source Sans 3',size:11},padding:12,boxWidth:11}},tooltip:{...TT,callbacks:{label:ctx=>`${ctx.label}: ${n(ctx.raw)} (${(ctx.raw/(h+m)*100).toFixed(1)}%)`}}}}});
+}
+function drawTopIE(d){
+  const s=[...d].sort((a,b)=>b.total-a.total).slice(0,10);
+  mk('chartTopIE',{type:'bar',data:{labels:s.map(r=>r.ie.length>30?r.ie.slice(0,28)+'…':r.ie),datasets:[
+    {label:'H',data:s.map(r=>r.varones),backgroundColor:'rgba(21,101,192,.7)',borderColor:CP.blue,borderWidth:1,stack:'s'},
+    {label:'M',data:s.map(r=>r.mujeres),backgroundColor:'rgba(165,32,64,.7)',borderColor:CP.rose,borderWidth:1,stack:'s'}
+  ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{size:11}}},tooltip:{...TT,mode:'index',intersect:false,callbacks:{title:i=>s[i[0].dataIndex].ie,footer:i=>`Total: ${n(s[i[0].dataIndex].total)}`}}},scales:{x:{stacked:true,ticks:{color:'#4A6078',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},y:{stacked:true,ticks:{color:'#1A3A5C',font:{size:10.5}},grid:{display:false}}}}});
+}
+function drawDistrito(d){
+  const grp={};d.forEach(r=>{grp[r.distrito]=(grp[r.distrito]||0)+r.total;});
+  const s=Object.entries(grp).sort((a,b)=>b[1]-a[1]);
+  mk('chartDistrito',{type:'bar',data:{labels:s.map(([k])=>k),datasets:[{label:'Matrículas',data:s.map(([,v])=>v),backgroundColor:s.map((_,i)=>PAL[i%PAL.length]+'CC'),borderColor:s.map((_,i)=>PAL[i%PAL.length]),borderWidth:1.5,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`${n(c.raw)} estudiantes`}}},scales:{x:{ticks:{color:'#4A6078',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#4A6078',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}}}}});
+}
+function drawTipo(pub,priv,tot){
+  const mpub=pub.reduce((s,r)=>s+r.total,0), mpriv=priv.reduce((s,r)=>s+r.total,0);
+  mk('chartTipo',{type:'pie',data:{labels:[`Pública — ${pub.length} IE (${n(mpub)})`,`Privada — ${priv.length} IE (${n(mpriv)})`],datasets:[{data:[mpub,mpriv],backgroundColor:['rgba(13,124,102,.8)','rgba(200,134,10,.8)'],borderColor:'#fff',borderWidth:3,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#4A6078',font:{size:11},padding:10}},tooltip:{...TT,callbacks:{label:c=>`${n(c.raw)} (${(c.raw/tot*100).toFixed(1)}%)`}}}}});
+}
+function drawEstado(def,proc){
+  mk('chartEstado',{type:'doughnut',data:{labels:[`Definitiva (${n(def)})`,`En Proceso (${n(proc||0)})`],datasets:[{data:[def,proc||0.1],backgroundColor:['rgba(51,105,30,.8)','rgba(200,134,10,.8)'],borderColor:'#fff',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#4A6078',font:{size:11},padding:10}},tooltip:{...TT}}}});
+}
+function drawGradoLinea(g1h,g1m,g2h,g2m,g3h,g3m,g4h,g4m,g5h,g5m){
+  const tots=[g1h+g1m,g2h+g2m,g3h+g3m,g4h+g4m,g5h+g5m];
+  mk('chartGradoLinea',{type:'line',data:{labels:['1.er Grado','2.do Grado','3.er Grado','4.to Grado','5.to Grado'],datasets:[
+    {label:'Total',data:tots,borderColor:CP.navy,backgroundColor:'rgba(26,58,92,.08)',fill:true,tension:.35,pointBackgroundColor:CP.navy,pointRadius:5,pointHoverRadius:8,borderWidth:2.5},
+    {label:'Hombres',data:[g1h,g2h,g3h,g4h,g5h],borderColor:CP.blue,backgroundColor:'transparent',tension:.35,pointBackgroundColor:CP.blue,pointRadius:4,pointHoverRadius:7,borderWidth:2,borderDash:[5,3]},
+    {label:'Mujeres',data:[g1m,g2m,g3m,g4m,g5m],borderColor:CP.rose,backgroundColor:'transparent',tension:.35,pointBackgroundColor:CP.rose,pointRadius:4,pointHoverRadius:7,borderWidth:2,borderDash:[5,3]}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{family:'Source Sans 3',size:12}}},tooltip:{...TT,mode:'index',intersect:false}},scales:{x:{ticks:{color:'#4A6078',font:{size:11,weight:'600'}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#4A6078',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}}}}});
+}
+
+/* ── TERRITORIAL ── */
+function drawTerritorial(){
+  const d=FILTERED;
+  const grp={};
+  d.forEach(r=>{if(!grp[r.distrito])grp[r.distrito]={h:0,m:0,ie:0,t:0};grp[r.distrito].h+=r.varones;grp[r.distrito].m+=r.mujeres;grp[r.distrito].ie++;grp[r.distrito].t+=r.total;});
+  const s=Object.entries(grp).sort((a,b)=>b[1].t-a[1].t);
+  destroyChart('chartDistDetalle');
+  const ctx=document.getElementById('chartDistDetalle');if(!ctx)return;
+  charts['chartDistDetalle']=new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:s.map(([k])=>k),datasets:[
+    {label:'Hombres',data:s.map(([,v])=>v.h),backgroundColor:'rgba(21,101,192,.75)',borderColor:CP.blue,borderWidth:1.5,stack:'s',borderRadius:4},
+    {label:'Mujeres',data:s.map(([,v])=>v.m),backgroundColor:'rgba(165,32,64,.75)',borderColor:CP.rose,borderWidth:1.5,stack:'s',borderRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{size:12}}},tooltip:{...TT,mode:'index',intersect:false,callbacks:{footer:i=>`Total: ${n(i.reduce((a,b)=>a+b.raw,0))} | ${s[i[0].dataIndex][1].ie} IE`}}},scales:{x:{stacked:true,ticks:{color:'#4A6078',font:{size:11}},grid:{color:'rgba(0,0,0,.04)'}},y:{stacked:true,ticks:{color:'#4A6078',font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}}}}});
+  // Lista
+  const tot=d.reduce((a,r)=>a+r.total,0);
+  document.getElementById('dist-detail-list').innerHTML=s.map(([k,v],i)=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-weight:700;color:${PAL[i%PAL.length]};font-size:13px">${k}</span>
+        <span style="font-family:'Playfair Display',serif;font-weight:700;font-size:1.1rem;color:var(--navy)">${n(v.t)}</span>
+      </div>
+      <div style="display:flex;gap:12px;font-size:11px;margin-bottom:5px">
+        <span style="color:var(--blue)">♂ ${n(v.h)}</span>
+        <span style="color:#A52040">♀ ${n(v.m)}</span>
+        <span style="color:var(--text3)">${v.ie} IE</span>
+        <span style="color:var(--text3)">${(v.t/tot*100).toFixed(1)}% del total</span>
+      </div>
+      <div class="pb"><div class="pf" style="width:${(v.t/s[0][1].t*100).toFixed(0)}%;background:${PAL[i%PAL.length]}"></div></div>
+    </div>`).join('');
+  // Heatmap simple
+  document.getElementById('heatmap-dist').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0">${s.map(([k,v],i)=>{const sz=Math.max(80,Math.min(200,(v.t/s[0][1].t)*200));return`<div style="width:${sz}px;height:${sz}px;border-radius:8px;background:${PAL[i%PAL.length]};display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,.15)"><p style="font-size:10px;font-weight:600;opacity:.85;line-height:1.2">${k}</p><p style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;line-height:1">${n(v.t)}</p><p style="font-size:10px;opacity:.8">${v.ie} IE</p></div>`;}).join('')}</div>`;
+}
+
+/* ── ALERTAS ── */
+function buildAlertas(d){
+  const al=[];
+  const sdni=d.filter(r=>r.sin_dni>0);
+  if(sdni.length)al.push({c:'#FFF3CD',b:'#C8860A',icon:'⚠️',t:'Sin DNI Registrado',txt:`${sdni.reduce((s,r)=>s+r.sin_dni,0)} estudiante(s) sin DNI en ${sdni.length} IE: ${sdni.map(r=>r.ie).join(', ')}.`});
+  const pr=d.filter(r=>r.mat_proc>0);
+  if(pr.length)al.push({c:'#FDECEA',b:'#C0392B',icon:'⏳',t:'Matrícula En Proceso',txt:`${pr.reduce((s,r)=>s+r.mat_proc,0)} matrículas pendientes en ${pr.length} IE: ${pr.map(r=>r.ie+' ('+r.mat_proc+')').join(', ')}.`});
+  const pq=d.filter(r=>r.total<=20);
+  if(pq.length)al.push({c:'#EDE7F6',b:'#6A1B9A',icon:'📌',t:'IE con ≤20 Estudiantes',txt:`${pq.length} IE con baja matrícula: ${pq.map(r=>r.ie+' ('+r.total+')').join(', ')}. Evaluar viabilidad operativa.`});
+  if(!al.length)al.push({c:'#E8F5E9',b:'#33691E',icon:'✅',t:'Sin Observaciones',txt:'Todos los indicadores dentro de parámetros normales.'});
+  document.getElementById('alertas-grid').innerHTML=al.map(a=>`<div style="background:${a.c};border:1px solid ${a.b}40;border-radius:8px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px">${a.icon}</span><div><p style="font-weight:700;font-size:12.5px;color:${a.b}">${a.t}</p><p style="font-size:11.5px;color:#3D5166;margin-top:3px;line-height:1.5">${a.txt}</p></div></div>`).join('');
+}
+
+/* ── TABLA ── */
+function buildTable(d){tableCache=[...d].sort((a,b)=>b.total-a.total);renderTable(tableCache);}
+let _sortKey='total',_sortAsc=false;
+function sortTable(k){if(_sortKey===k)_sortAsc=!_sortAsc;else{_sortKey=k;_sortAsc=false;}filterTable();}
+function filterTable(){
+  const q=(document.getElementById('searchIE')||{}).value?.toLowerCase()||'';
+  const gt=(document.getElementById('fGradoIE')||{}).value||'';
+  const tp=(document.getElementById('fTipoIE')||{}).value||'';
+  let rows=[...tableCache].filter(r=>{
+    const match=r.ie.toLowerCase().includes(q)||r.cod.includes(q)||r.distrito.toLowerCase().includes(q);
+    const tpMatch=!tp||r.tipo===tp;
+    return match&&tpMatch;
+  });
+  if(_sortKey){
+    rows.sort((a,b)=>{
+      const va=typeof a[_sortKey]==='number'?a[_sortKey]:String(a[_sortKey]||'');
+      const vb=typeof b[_sortKey]==='number'?b[_sortKey]:String(b[_sortKey]||'');
+      return _sortAsc?(va>vb?1:-1):(va<vb?1:-1);
+    });
+  }
+  renderTable(rows);
+}
+function renderTable(rows){
+  const max=Math.max(...rows.map(r=>r.total),1);
+  setText('rowCount',rows.length);
+  document.getElementById('tableBody').innerHTML=rows.map((r,i)=>{
+    const tc=r.tipo==='Pública'?CP.teal:CP.gold;
+    return`<tr onclick="showFicha('${r.cod}')" style="cursor:pointer">
+      <td style="color:var(--text3);font-size:11px">${i+1}</td>
+      <td style="font-family:monospace;font-size:11px;color:var(--slate)">${r.cod}</td>
+      <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--navy)" title="${r.ie}">${r.ie}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.distrito}</td>
+      <td><span class="badge" style="background:${tc}18;color:${tc}">${r.tipo}</span></td>
+      <td class="r" style="font-family:'Playfair Display',serif;font-weight:700;color:var(--navy)">${n(r.total)}</td>
+      <td class="r" style="color:#1565C0">${n(r.varones)}</td>
+      <td class="r" style="color:#A52040">${n(r.mujeres)}</td>
+      <td class="r" style="font-size:12px">${r.p1h+r.p1m}</td>
+      <td class="r" style="font-size:12px">${r.p2h+r.p2m}</td>
+      <td class="r" style="font-size:12px">${r.p3h+r.p3m}</td>
+      <td class="r" style="font-size:12px">${r.p4h+r.p4m}</td>
+      <td class="r" style="font-size:12px">${r.p5h+r.p5m}</td>
+      <td class="r" style="color:var(--teal)">${r.secciones}</td>
+      <td class="r" style="color:${r.mat_proc>0?CP.gold:'#4A6078'};font-size:12px">${n(r.mat_def)}</td>
+      <td class="r" style="color:${r.sin_dni>0?CP.red:CP.teal};font-size:12px">${n(r.dni_val)}</td>
+      <td class="r" style="color:${r.sin_dni>0?CP.red:'#4A6078'};font-size:12px;font-weight:${r.sin_dni>0?700:400}">${r.sin_dni||'—'}</td>
+      <td style="min-width:80px"><div class="pb"><div class="pf" style="width:${(r.total/max*100).toFixed(0)}%;background:${tc}"></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── FICHA IE ── */
+function showFicha(cod){
+  const r=REAL.find(x=>x.cod===cod);if(!r)return;
+  const fc=document.getElementById('ie-ficha');
+  fc.style.display='block';
+  document.getElementById('ficha-title').textContent='Ficha: '+r.ie+' ('+r.cod+')';
+  document.getElementById('ficha-stats').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div class="card p-3 text-center"><p style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:600">Total</p><p style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--navy)">${n(r.total)}</p></div>
+      <div class="card p-3 text-center"><p style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:600">Secciones</p><p style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--teal)">${r.secciones}</p></div>
+    </div>
+    <table class="tbl" style="font-size:12px">
+      <thead><tr><th>Dato</th><th class="r">Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Distrito / CP</td><td class="r">${r.distrito} / ${r.cp}</td></tr>
+        <tr><td>Gestión</td><td class="r"><span class="badge" style="background:${r.tipo==='Pública'?CP.teal:CP.gold}20;color:${r.tipo==='Pública'?CP.teal:CP.gold}">${r.tipo}</span></td></tr>
+        <tr><td>Varones</td><td class="r" style="color:#1565C0">${n(r.varones)} (${(r.varones/r.total*100).toFixed(1)}%)</td></tr>
+        <tr><td>Mujeres</td><td class="r" style="color:#A52040">${n(r.mujeres)} (${(r.mujeres/r.total*100).toFixed(1)}%)</td></tr>
+        <tr><td>1ro (H+M)</td><td class="r">${r.p1h+r.p1m} <small style="color:var(--text3)">(H:${r.p1h} M:${r.p1m})</small></td></tr>
+        <tr><td>2do (H+M)</td><td class="r">${r.p2h+r.p2m} <small style="color:var(--text3)">(H:${r.p2h} M:${r.p2m})</small></td></tr>
+        <tr><td>3ro (H+M)</td><td class="r">${r.p3h+r.p3m} <small style="color:var(--text3)">(H:${r.p3h} M:${r.p3m})</small></td></tr>
+        <tr><td>4to (H+M)</td><td class="r">${r.p4h+r.p4m} <small style="color:var(--text3)">(H:${r.p4h} M:${r.p4m})</small></td></tr>
+        <tr><td>5to (H+M)</td><td class="r">${r.p5h+r.p5m} <small style="color:var(--text3)">(H:${r.p5h} M:${r.p5m})</small></td></tr>
+        <tr><td>Mat. Definitiva</td><td class="r" style="color:${r.mat_proc>0?CP.gold:CP.teal}">${n(r.mat_def)}</td></tr>
+        <tr><td>Mat. En Proceso</td><td class="r" style="color:${r.mat_proc>0?CP.gold:'#4A6078'}">${r.mat_proc||'—'}</td></tr>
+        <tr><td>Sin DNI</td><td class="r" style="color:${r.sin_dni>0?CP.red:'#4A6078'}">${r.sin_dni||'—'}</td></tr>
+      </tbody>
+    </table>`;
+  destroyChart('ficha-chart');
+  charts['ficha-chart']=new Chart(document.getElementById('ficha-chart').getContext('2d'),{type:'radar',data:{labels:['1ro','2do','3ro','4to','5to'],datasets:[
+    {label:'Hombres',data:[r.p1h,r.p2h,r.p3h,r.p4h,r.p5h],borderColor:CP.blue,backgroundColor:'rgba(21,101,192,.1)',pointBackgroundColor:CP.blue,borderWidth:2},
+    {label:'Mujeres',data:[r.p1m,r.p2m,r.p3m,r.p4m,r.p5m],borderColor:CP.rose,backgroundColor:'rgba(165,32,64,.1)',pointBackgroundColor:CP.rose,borderWidth:2}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{size:11}}},tooltip:{...TT}},scales:{r:{ticks:{color:'#4A6078',font:{size:9}},grid:{color:'rgba(0,0,0,.07)'},pointLabels:{color:'#1A3A5C',font:{weight:'700',size:11}}}}}});
+  fc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ── COMPARADOR ── */
+function openCompare(){document.getElementById('modal-compare').classList.add('open');buildCompareList();}
+function closeCompare(){document.getElementById('modal-compare').classList.remove('open');}
+function buildCompareList(){
+  const q=(document.getElementById('searchCompare')||{}).value?.toLowerCase()||'';
+  const items=FILTERED.filter(r=>!q||r.ie.toLowerCase().includes(q)||r.distrito.toLowerCase().includes(q)).sort((a,b)=>b.total-a.total);
+  document.getElementById('compare-list').innerHTML=items.map(r=>`
+    <div class="ie-checkbox-item" onclick="toggleCompare('${r.cod}')">
+      <input type="checkbox" ${compareSelected.has(r.cod)?'checked':''} id="chk-${r.cod}" onchange="toggleCompare('${r.cod}')" onclick="event.stopPropagation()"/>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:12.5px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.ie}</p>
+        <p style="font-size:11px;color:var(--text3)">${r.distrito} · ${r.tipo} · <strong>${n(r.total)}</strong></p>
+      </div>
+    </div>`).join('');
+  updateChips();
+}
+function filterCompareList(){buildCompareList();}
+function toggleCompare(cod){
+  if(compareSelected.has(cod)){compareSelected.delete(cod);}
+  else{if(compareSelected.size>=4){showToast('Máximo 4 IE para comparar',true);return;}compareSelected.add(cod);}
+  buildCompareList();
+}
+function updateChips(){
+  document.getElementById('compare-chips').innerHTML=[...compareSelected].map(cod=>{
+    const r=REAL.find(x=>x.cod===cod);
+    return r?`<span class="compare-chip">${r.ie.length>20?r.ie.slice(0,18)+'…':r.ie} <span onclick="toggleCompare('${cod}')" style="cursor:pointer;margin-left:2px">×</span></span>`:'';
+  }).join('');
+}
+function runCompare(){
+  if(compareSelected.size<2){showToast('Selecciona al menos 2 IE',true);return;}
+  const items=[...compareSelected].map(cod=>REAL.find(r=>r.cod===cod)).filter(Boolean);
+  document.getElementById('compare-result').style.display='block';
+  const cols=items.map((_,i)=>PAL[i%PAL.length]);
+  // Total
+  destroyChart('cmp-total');
+  charts['cmp-total']=new Chart(document.getElementById('cmp-total').getContext('2d'),{type:'bar',data:{labels:items.map(r=>r.ie.length>18?r.ie.slice(0,16)+'…':r.ie),datasets:[{label:'Total',data:items.map(r=>r.total),backgroundColor:cols.map(c=>c+'BB'),borderColor:cols,borderWidth:2,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`Total: ${n(c.raw)}`}}},scales:{x:{ticks:{color:'#4A6078',font:{size:10}}},y:{ticks:{color:'#4A6078',font:{size:10}}}}}});
+  // Género
+  destroyChart('cmp-genero');
+  charts['cmp-genero']=new Chart(document.getElementById('cmp-genero').getContext('2d'),{type:'bar',data:{labels:items.map(r=>r.ie.length>14?r.ie.slice(0,12)+'…':r.ie),datasets:[
+    {label:'Hombres',data:items.map(r=>r.varones),backgroundColor:'rgba(21,101,192,.75)',borderColor:CP.blue,borderWidth:1.5,stack:'s',borderRadius:4},
+    {label:'Mujeres',data:items.map(r=>r.mujeres),backgroundColor:'rgba(165,32,64,.75)',borderColor:CP.rose,borderWidth:1.5,stack:'s',borderRadius:4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{size:11}}},tooltip:{...TT,mode:'index',intersect:false}},scales:{x:{stacked:true,ticks:{color:'#4A6078',font:{size:10}}},y:{stacked:true,ticks:{color:'#4A6078',font:{size:10}}}}}});
+  // Grado radar
+  destroyChart('cmp-grado');
+  charts['cmp-grado']=new Chart(document.getElementById('cmp-grado').getContext('2d'),{type:'bar',data:{labels:['1ro','2do','3ro','4to','5to'],datasets:items.map((r,i)=>({label:r.ie.length>20?r.ie.slice(0,18)+'…':r.ie,data:[r.p1h+r.p1m,r.p2h+r.p2m,r.p3h+r.p3m,r.p4h+r.p4m,r.p5h+r.p5m],backgroundColor:cols[i]+'88',borderColor:cols[i],borderWidth:2,borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#3D5166',font:{size:11}}},tooltip:{...TT,mode:'index',intersect:false}},scales:{x:{ticks:{color:'#4A6078',font:{size:11,weight:'600'}}},y:{ticks:{color:'#4A6078',font:{size:10}}}}}});
+  // Tabla comparativa
+  document.getElementById('cmp-table').innerHTML=`<table class="tbl">
+    <thead><tr><th>Indicador</th>${items.map(r=>`<th>${r.ie.length>16?r.ie.slice(0,14)+'…':r.ie}</th>`).join('')}</tr></thead>
+    <tbody>
+      <tr><td>Distrito</td>${items.map(r=>`<td>${r.distrito}</td>`).join('')}</tr>
+      <tr><td>Gestión</td>${items.map(r=>`<td><span class="badge" style="background:${r.tipo==='Pública'?CP.teal:CP.gold}20;color:${r.tipo==='Pública'?CP.teal:CP.gold}">${r.tipo}</span></td>`).join('')}</tr>
+      <tr><td><strong>Total</strong></td>${items.map(r=>`<td><strong>${n(r.total)}</strong></td>`).join('')}</tr>
+      <tr><td>Varones</td>${items.map(r=>`<td style="color:#1565C0">${n(r.varones)}</td>`).join('')}</tr>
+      <tr><td>Mujeres</td>${items.map(r=>`<td style="color:#A52040">${n(r.mujeres)}</td>`).join('')}</tr>
+      <tr><td>1.er Grado</td>${items.map(r=>`<td>${r.p1h+r.p1m}</td>`).join('')}</tr>
+      <tr><td>2.do Grado</td>${items.map(r=>`<td>${r.p2h+r.p2m}</td>`).join('')}</tr>
+      <tr><td>3.er Grado</td>${items.map(r=>`<td>${r.p3h+r.p3m}</td>`).join('')}</tr>
+      <tr><td>4.to Grado</td>${items.map(r=>`<td>${r.p4h+r.p4m}</td>`).join('')}</tr>
+      <tr><td>5.to Grado</td>${items.map(r=>`<td>${r.p5h+r.p5m}</td>`).join('')}</tr>
+      <tr><td>Secciones</td>${items.map(r=>`<td style="color:var(--teal)">${r.secciones}</td>`).join('')}</tr>
+      <tr><td>Mat. Definitiva</td>${items.map(r=>`<td>${n(r.mat_def)}</td>`).join('')}</tr>
+      <tr><td>Sin DNI</td>${items.map(r=>`<td style="color:${r.sin_dni>0?CP.red:'inherit'}">${r.sin_dni||'—'}</td>`).join('')}</tr>
+    </tbody>
+  </table>`;
+}
+
+/* ── EXPORT PDF ── */
+async function exportPDF(){
+  showToast('⏳ Generando PDF, por favor espera…');
+  try{
+    const {jsPDF}=window.jspdf;
+    const el=document.getElementById('main-content');
+    // Ocultar elementos no imprimibles
+    document.querySelectorAll('.no-print').forEach(e=>e.style.display='none');
+    const canvas=await html2canvas(el,{scale:1.5,useCORS:true,backgroundColor:'#F0F4F8'});
+    document.querySelectorAll('.no-print').forEach(e=>e.style.display='');
+    const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    const w=pdf.internal.pageSize.getWidth();
+    const h=pdf.internal.pageSize.getHeight();
+    const ratio=canvas.width/canvas.height;
+    const imgH=Math.min(h-20,w/ratio);
+    const imgW=imgH*ratio;
+    // Header
+    pdf.setFillColor(26,58,92);
+    pdf.rect(0,0,w,14,'F');
+    pdf.setTextColor(200,134,10);
+    pdf.setFontSize(9);pdf.setFont('helvetica','bold');
+    pdf.text('MINISTERIO DE EDUCACIÓN · DRE CUSCO · UGEL ESPINAR',10,9);
+    pdf.setTextColor(255,255,255);
+    pdf.text('Dashboard Matrículas Secundaria 2026 — Generado: '+new Date().toLocaleDateString('es-PE'),w-10,9,{align:'right'});
+    // Contenido
+    let y=16;
+    const pagesH=Math.ceil(canvas.height/(canvas.width/(imgW)*canvas.height));
+    const sliceH=Math.floor(canvas.height/(Math.ceil(canvas.height*imgW/(canvas.width*(h-20)))));
+    let yOff=0;
+    while(yOff<canvas.height){
+      if(yOff>0){pdf.addPage();pdf.setFillColor(26,58,92);pdf.rect(0,0,w,14,'F');pdf.setTextColor(200,134,10);pdf.setFontSize(9);pdf.setFont('helvetica','bold');pdf.text('UGEL Espinar · Matrículas Secundaria 2026',10,9);y=16;}
+      const sliceCanvas=document.createElement('canvas');
+      const sl=Math.min(sliceH,canvas.height-yOff);
+      sliceCanvas.width=canvas.width;sliceCanvas.height=sl;
+      sliceCanvas.getContext('2d').drawImage(canvas,0,yOff,canvas.width,sl,0,0,canvas.width,sl);
+      const imgData=sliceCanvas.toDataURL('image/jpeg',0.92);
+      const slH=(sl/canvas.width)*imgW;
+      pdf.addImage(imgData,'JPEG',(w-imgW)/2,y,imgW,slH);
+      yOff+=sl;y+=slH;
+    }
+    pdf.save('UGEL_Espinar_Matriculas_Secundaria_2026.pdf');
+    showToast('✓ PDF descargado correctamente');
+  }catch(e){console.error(e);showToast('❌ Error al generar PDF: '+e.message,true);}
+}
+
+/* ── EXPORT CSV ── */
+function exportCSV(){
+  const h='Cod,IE,Distrito,CP,Tipo,Total,Varones,Mujeres,1ro_H,1ro_M,2do_H,2do_M,3ro_H,3ro_M,4to_H,4to_M,5to_H,5to_M,1ro,2do,3ro,4to,5to,Secciones,Mat_Def,Mat_Proc,DNI_Val,Sin_DNI';
+  const rows=tableCache.map(r=>`"${r.cod}","${r.ie}","${r.distrito}","${r.cp}","${r.tipo}",${r.total},${r.varones},${r.mujeres},${r.p1h},${r.p1m},${r.p2h},${r.p2m},${r.p3h},${r.p3m},${r.p4h},${r.p4m},${r.p5h},${r.p5m},${r.p1h+r.p1m},${r.p2h+r.p2m},${r.p3h+r.p3m},${r.p4h+r.p4m},${r.p5h+r.p5m},${r.secciones},${r.mat_def},${r.mat_proc},${r.dni_val},${r.sin_dni}`);
+  const b=new Blob(['\uFEFF'+h+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`UGEL_Espinar_Matriculas_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast('✓ CSV descargado');
+}
+
+/* ── DROP / INPUT ── */
+const dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)readFile(f);});
+document.getElementById('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value='';});
+document.getElementById('modal-compare').addEventListener('click',function(e){if(e.target===this)closeCompare();});
+
+/* ── TOAST ── */
+function showToast(msg,err=false){
+  const t=document.getElementById('toast');t.textContent=msg;
+  t.style.background=err?CP.red:CP.teal;t.style.color='#fff';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+/* ── INIT ── */
+populateFilters();
+FILTERED=[...RAW];
+setText('fCount',RAW.length);
+renderAll();
+</script>
+</body>
+</html>
